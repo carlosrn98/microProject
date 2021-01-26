@@ -1,0 +1,490 @@
+#include "mbed.h"
+#include "USBKeyboard.h"
+#include "TextLCD.h"
+#include <string.h>
+
+TextLCD lcd(PTE20, PTE21, PTE22, PTE23, PTE29, PTE30, TextLCD::LCD16x2);
+InterruptIn seleccion_modo(PTD3);
+InterruptIn mover_opciones(PTD1);
+InterruptIn seleccion_opcion(PTD2);
+InterruptIn nota(PTD0);
+AnalogIn potenciometro(A0);
+PwmOut servo (PTC1);
+Ticker ticker1;
+Timer timer1;
+USBKeyboard key;
+
+
+int entrada_flag=0;
+int opcion=0, opcionWetzel=0, opcion_flag=0, opcionElena=0;
+int seleccion=0;
+float tiempo=0.2;
+int activar_timer1=0;
+int tocar_flag=0;
+
+void modo(){
+    wait(0.3);
+    
+    if(entrada_flag>5){
+        entrada_flag=2;
+    }
+    else{
+        entrada_flag++;    
+    }
+    
+}
+
+void opciones(){
+    wait(0.3);
+    if(opcion_flag == 0){
+        if(opcion > 0){
+            opcion=-1;
+        }
+        else opcion++;
+    }
+    else if(opcion_flag==1){
+        if(opcionWetzel>4){
+            opcionWetzel=-1;
+        }
+        else opcionWetzel++;
+    }
+    else{
+        if(opcionElena>5){
+            opcionElena=-1;
+        }
+        else opcionElena++;
+    }
+        
+}
+
+void seleccionar(){
+    wait(0.3);
+    seleccion++;
+}
+
+
+/********timer*******/
+void bt1(){
+    if(activar_timer1 %2 != 0){
+        timer1.start();
+    }
+    if(activar_timer1 %2 == 0){
+        timer1.stop();
+        timer1.reset();
+    }
+    /*
+    if( (timer1.read() == 430 && opcion_flag==0) || (timer1.read()==182 && opcion_flag==2) || (timer1.read()==10 && opcion_flag==1) ){
+        activar_timer1++;
+    }*/
+    
+}
+
+/**********************/
+/******tocar nota ***/
+void tocar(){
+    wait(0.15);
+    tocar_flag++;
+}
+
+int main() {
+    float pot;
+    char bufferLCD[3][100];
+    seleccion_modo.mode(PullUp);
+    mover_opciones.mode(PullUp);
+    seleccion_opcion.mode(PullUp);
+    nota.mode(PullUp);
+    
+    wait(0.1);
+    
+    seleccion_modo.fall(&modo);
+    mover_opciones.fall(&opciones);
+    seleccion_opcion.fall(&seleccionar);
+    nota.fall(&tocar);
+    
+    servo.period_ms(20);
+    
+    ticker1.attach(&bt1, 0.5);//lleva el tiempo de reproduccion de la BT1
+    while(1){
+        pot=potenciometro.read();
+        /**********************************/
+        if(entrada_flag==0){
+            lcd.locate(0,0);
+            lcd.printf("Bienvenido");
+            seleccion=0;
+        }//if stand by
+        
+        if(entrada_flag==1){
+            key.printf("python test.py\r\n");
+            wait(1);
+            seleccion=0;
+            entrada_flag=2;
+        }//if empezar 
+        /***********************************/
+        
+        /****PIANO******/
+        if(entrada_flag==3){  
+            opcionElena=0;
+            opcionWetzel=0;
+            //despliegue lcd
+            lcd.cls();      
+            lcd.locate(0,0);
+            lcd.printf("Piano do mayor");
+            if(pot>=0 && pot<0.14){
+                    servo.pulsewidth_us(2456);    
+                }
+                if(pot >=0.14 && pot <0.28){
+                    servo.pulsewidth_us(2171);
+                }        
+                if(pot >=0.28 && pot <0.42){
+                    servo.pulsewidth_us(1891);
+                }
+                if(pot>=0.42 && pot<0.56){
+                    servo.pulsewidth_us(1425);
+                }
+                if(pot >=0.56 && pot <0.7){
+                    servo.pulsewidth_us(1009);
+                }
+                if(pot>=0.7 && pot<0.84){
+                    servo.pulsewidth_us(703);
+                }
+                if(pot>=0.84 && pot<1){ 
+                    servo.pulsewidth_us(500);  
+                }
+            if(tocar_flag>0){
+                //valores pot
+                if(pot>=0 && pot<0.14){
+                    key.printf("a\r\n");
+                    servo.pulsewidth_us(2456);    
+                    tocar_flag=0;
+                }
+                if(pot >=0.14 && pot <0.28){
+                    key.printf("s\r\n");
+                    servo.pulsewidth_us(2171);
+                    tocar_flag=0;
+                }        
+                if(pot >=0.28 && pot <0.42){
+                    key.printf("d\r\n");
+                    servo.pulsewidth_us(1891);
+                    tocar_flag=0;
+                }
+                if(pot>=0.42 && pot<0.56){
+                    key.printf("f\r\n");
+                    servo.pulsewidth_us(1425);
+                    tocar_flag=0;
+                }
+                if(pot >=0.56 && pot <0.7){
+                    key.printf("g\r\n");
+                    servo.pulsewidth_us(1009);
+                    tocar_flag=0;
+                }
+                if(pot>=0.7 && pot<0.84){
+                    key.printf("h\r\n");
+                    servo.pulsewidth_us(703);
+                    tocar_flag=0;
+                }
+                if(pot>=0.84 && pot<1){
+                    key.printf("j\r\n");  
+                    servo.pulsewidth_us(500);  
+                    tocar_flag=0;
+                }
+                
+            }
+            seleccion=0;
+        }//if piano
+        /*******************************/
+        
+        /******piratas del caribe*****/
+        if(entrada_flag==6){
+            //despliegue lcd
+            lcd.cls();      
+            lcd.locate(0,0);
+            lcd.printf("Piratas del Caribe");
+            
+            opcion_flag=2;
+            opcion=0;
+            opcionWetzel=0;
+            strcpy(bufferLCD[1], "Piratas del Caribe");
+            if(opcionElena==-1){
+                lcd.locate(0,0);
+                lcd.printf("%s  %1.1fs", bufferLCD[1], timer1.read() );
+                if(seleccion==1){ //parar
+                    key.printf("m\r\n");
+                    activar_timer1++;
+                    seleccion=0;
+                }
+            }
+            
+            if(opcionElena==0){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 1");
+                if(seleccion==1){
+                    key.printf("1\r\n");
+                    wait(1);
+                    activar_timer1++;
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//opcion
+            
+            if(opcionElena==1){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 2");
+                if(seleccion==1){
+                    key.printf("2\r\n");
+                    wait(1);
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//op
+            
+            if(opcionElena==2){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 3");
+                if(seleccion==1){
+                    key.printf("3\r\n");
+                    wait(1);
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//op
+            
+            if(opcionElena==3){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 4");
+                if(seleccion==1){
+                    key.printf("4\r\n");
+                    wait(1);
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//op
+            
+            if(opcionElena==4){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 5");
+                if(seleccion==1){
+                    key.printf("5\r\n");
+                    wait(1);
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//op
+            
+            if(opcionElena==5){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 6");
+                if(seleccion==1){
+                    key.printf("6\r\n");
+                    wait(1);
+                    seleccion=0;
+                    opcionElena=-1;
+                }  
+            }//op
+            
+        }//if entrada
+        /***********/
+        
+        /*******Mix wetzel******/
+        if(entrada_flag==5){
+            //despliegue lcd
+            lcd.cls();      
+            lcd.locate(0,0);
+            lcd.printf("Wetzel");
+            
+            opcion_flag=1;
+            opcionElena=0;
+            opcion=0;
+            strcpy(bufferLCD[0], "Mix Wetzel");
+            if(opcionWetzel==-1){
+                lcd.locate(0,0);
+                lcd.printf("%s  %1.1fs", bufferLCD[0], timer1.read() );
+                if(seleccion==1){ //parar
+                    key.printf("m\r\n");
+                    activar_timer1++;
+                    seleccion=0;
+                }
+            }
+                
+            if(opcionWetzel==0){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 1");
+                if(seleccion==1){
+                    key.printf("q\n");
+                    wait(1);
+                    if(activar_timer1%2==0){
+                        activar_timer1++;    
+                    }
+                    seleccion=0;
+                    opcionWetzel=-1;
+                    
+                }
+            }
+            if(opcionWetzel==1){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 2");
+                if(seleccion==1){
+                    key.printf("w\n");
+                    seleccion=0;
+                    opcionWetzel=-1;
+                }
+            }        
+            if(opcionWetzel==2){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 3");
+                if(seleccion==1){
+                    key.printf("e\n");
+                    if(activar_timer1%2==0){
+                        activar_timer1++;    
+                    }
+                    seleccion=0;
+                    opcionWetzel=-1;
+                }
+            }
+            if(opcionWetzel==3){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 4");
+                if(seleccion==1){
+                    key.printf("r\n");
+                    if(activar_timer1%2==0){
+                        activar_timer1++;    
+                    }
+                    seleccion=0;
+                    opcionWetzel=-1;
+                }
+            }
+            if(opcionWetzel==4){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 5");
+                if(seleccion==1){
+                    key.printf("t\n");
+                    if(activar_timer1%2==0){
+                        activar_timer1++;    
+                    }
+                    seleccion=0;
+                    opcionWetzel=-1;
+                }
+            }
+            if(opcionWetzel==5){
+                lcd.locate(0,1);
+                lcd.printf("Opcion 6");
+                if(seleccion==1){
+                    key.printf("y\n");
+                    seleccion=0;
+                    opcionWetzel=-1;
+                }
+            }
+           
+            
+        }//if wetzel
+        
+        /********Pentatonica*******/
+        if(entrada_flag==4){
+            opcionElena=0;
+            opcionWetzel=0;
+            lcd.cls();      
+            lcd.locate(0,0);
+            lcd.printf("Pentatonica la menor");
+            
+            if(pot>=0 && pot<0.2){
+                servo.pulsewidth_us(703);  
+            }
+            if(pot>=0.2 && pot<0.4){
+                servo.pulsewidth_us(2456);  
+            }
+            if(pot>=.4 && pot<0.6){
+                servo.pulsewidth_us(2171);  
+            }
+            if(pot>=0.6 && pot<0.8){
+                servo.pulsewidth_us(1891);  
+            }
+            if(pot>=0.8 && pot<=1){
+                servo.pulsewidth_us(1009);  
+            }
+            
+            if(tocar_flag>0){
+                if(pot>=0 && pot<0.2){
+                    key.printf("h\r\n");
+                    servo.pulsewidth_us(703);  
+                    tocar_flag=0;
+                }
+                if(pot>=0.2 && pot<0.4){
+                    key.printf("a\r\n");
+                    servo.pulsewidth_us(2456);  
+                    tocar_flag=0;
+                }
+                if(pot>=.4 && pot<0.6){
+                    key.printf("s\r\n");
+                    servo.pulsewidth_us(2171);  
+                    tocar_flag=0;
+                }
+                if(pot>=0.6 && pot<0.8){
+                    key.printf("d\r\n");
+                    servo.pulsewidth_us(1891);  
+                    tocar_flag=0;
+                }
+                if(pot>=0.8 && pot<=1){
+                    key.printf("g\r\n");
+                    servo.pulsewidth_us(1009);  
+                    tocar_flag=0;
+                }
+            }
+            seleccion=0;
+        }//if pentatonica
+        /***************/
+        
+        //BACKING TRACK
+        if(entrada_flag==2){
+            lcd.cls();      
+            lcd.locate(0,0);
+            lcd.printf("Backing track");
+            opcion_flag=0;
+            opcionElena=0;
+            opcionWetzel=0;
+            if(opcion==-1){
+                lcd.locate(0,0);
+                lcd.printf("%s  %1.1fs", bufferLCD[2], timer1.read() );
+                if(seleccion==1){ //parar
+                    key.printf("m\r\n");
+                    activar_timer1++;
+                    seleccion=0;
+                }
+            }
+            if(opcion==0){
+                strcpy(bufferLCD[2], " Balada");
+                
+                lcd.locate(0,1);
+                lcd.printf("%s", bufferLCD[2]);
+                if(seleccion==1){
+                    key.printf("p\r\n");
+                    
+                    seleccion=0;
+                    opcion=-1;
+                    tiempo=0.4;
+                    
+                    activar_timer1++;
+                }
+            }
+            
+            if(opcion==1){
+                strcpy(bufferLCD[2], "Groove Rock");
+                
+                lcd.locate(0,1);
+                lcd.printf("%s", bufferLCD[2]);
+                if(seleccion==1){
+                    key.printf("o\r\n");
+                    
+                    seleccion=0;
+                    opcion=-1;
+                    tiempo=0.4;
+                    
+                    activar_timer1++;
+                } 
+            }
+            
+        }//if backing track
+        
+        wait(0.1);
+        
+    }//while
+}
+
